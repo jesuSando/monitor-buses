@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor GPS - Vista Simplificada</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .json-preview {
+            max-height: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            -webkit-box-orient: vertical;
+            font-family: monospace;
+            font-size: 0.85rem;
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .json-preview:hover {
+            background-color: #e9ecef;
+        }
+        .status-badge {
+            min-width: 80px;
+        }
+        .table-container {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #loadingSpinner {
+            display: none;
+        }
+        .last-update {
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-3">
+        <h1 class="h4 mb-3">Monitor GPS - Vista Simplificada</h1>
+        
+        <div class="card mb-3">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button id="refreshBtn" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                        <span id="loadingSpinner" class="ms-2 spinner-border spinner-border-sm text-primary" role="status"></span>
+                    </div>
+                    <div class="text-end">
+                        <small class="last-update text-muted" id="lastUpdate"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-sm table-hover">
+                <thead class="sticky-top bg-white">
+                    <tr>
+                        <th width="15%">Patente</th>
+                        <th width="42%">Datos Tracker</th>
+                        <th width="43%">Respuesta Wisetrack</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable">
+                    <tr>
+                        <td colspan="3" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p>Cargando datos de vehículos...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para JSON completo -->
+    <div class="modal fade" id="jsonModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalles JSON</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="modalJsonContent" class="p-3 bg-light rounded" style="max-height: 70vh; overflow: auto;"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" id="copyJsonBtn">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función para formatear JSON como string
+        function formatJson(json) {
+            if (typeof json === 'string') {
+                try {
+                    json = JSON.parse(json);
+                } catch {
+                    return json; // Si no es JSON válido, devolver como texto
+                }
+            }
+            return JSON.stringify(json, null, 2);
+        }
+
+        // Función para crear preview de JSON
+        function createJsonPreview(json, maxLines = 6) {
+            const str = formatJson(json);
+            const lines = str.split('\n');
+            if (lines.length <= maxLines) return str;
+            return lines.slice(0, maxLines).join('\n') + '\n...';
+        }
+
+        // Función para cargar datos
+        async function loadData() {
+            const tbody = document.getElementById('dataTable');
+            const spinner = document.getElementById('loadingSpinner');
+            
+            try {
+                // Mostrar loading
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p>Cargando datos...</p>
+                        </td>
+                    </tr>
+                `;
+                spinner.style.display = 'inline-block';
+                
+                const response = await fetch('data2.php');
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-3">
+                                No se encontraron vehículos
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Construir tabla
+                tbody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    
+                    // Estado para badge
+                    const statusClass = item.tracker_data.connection_status === 'online' ? 
+                        'bg-success' : 'bg-secondary';
+                    const statusText = item.tracker_data.connection_status === 'online' ? 
+                        'En línea' : 'Offline';
+                    
+                    row.innerHTML = `
+                        <td>
+                            <strong>${item.patente || 'N/A'}</strong><br>
+                            <small class="text-muted">${item.tracker_data.imei || ''}</small>
+                        </td>
+                        <td>
+                            <div class="json-preview" data-json='${JSON.stringify(item.tracker_data)}'>
+                                ${createJsonPreview(item.tracker_data)}
+                            </div>
+                            <small class="d-block mt-1">
+                                <span class="badge ${statusClass} status-badge">${statusText}</span>
+                                <span class="ms-2 text-muted">${item.tracker_data['ultima-conexion'] || ''}</span>
+                            </small>
+                        </td>
+                        <td>
+                            <div class="json-preview" data-json='${JSON.stringify(item.wisetrack_response)}'>
+                                ${createJsonPreview(item.wisetrack_response)}
+                            </div>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Actualizar hora
+                document.getElementById('lastUpdate').textContent = 
+                    `Última actualización: ${new Date().toLocaleTimeString('es-ES')}`;
+                
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center text-danger py-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error al cargar datos: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                spinner.style.display = 'none';
+                
+                // Agregar eventos a los previews de JSON
+                document.querySelectorAll('.json-preview').forEach(preview => {
+                    preview.addEventListener('click', function() {
+                        const jsonContent = JSON.parse(this.getAttribute('data-json'));
+                        const modalTitle = document.getElementById('modalTitle');
+                        const modalContent = document.getElementById('modalJsonContent');
+                        
+                        modalTitle.textContent = this.parentElement.parentElement.firstElementChild.textContent.trim();
+                        modalContent.textContent = formatJson(jsonContent);
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('jsonModal'));
+                        modal.show();
+                    });
+                });
+            }
+        }
+
+        // Botón para copiar JSON
+        document.getElementById('copyJsonBtn').addEventListener('click', () => {
+            const content = document.getElementById('modalJsonContent').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                const btn = document.getElementById('copyJsonBtn');
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copiar';
+                }, 2000);
+            });
+        });
+
+        // Botón de actualización
+        document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+        // Cargar datos al iniciar
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
