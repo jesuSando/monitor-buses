@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,25 +18,29 @@
             white-space: pre-wrap;
             border: 1px solid #dee2e6;
         }
+
         .table thead th {
             position: sticky;
             top: 0;
             background-color: white;
             z-index: 10;
         }
+
         .table-container {
             max-height: 80vh;
             overflow-y: auto;
         }
+
         .badge-status {
             min-width: 80px;
         }
     </style>
 </head>
+
 <body>
     <div class="container-fluid py-3">
         <h1 class="h4 mb-3">Monitor GPS - Vista Simplificada</h1>
-        
+
         <div class="card mb-3">
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between align-items-center">
@@ -101,10 +106,10 @@
         // Función para formatear y acortar JSON
         function formatJsonPreview(json, maxLength = 150) {
             if (!json) return 'No hay datos';
-            
+
             const str = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
             if (str.length <= maxLength) return str;
-            
+
             return str.substring(0, maxLength) + '...';
         }
 
@@ -112,7 +117,7 @@
         function showFullJson(content) {
             const modalContent = document.getElementById('modalJsonContent');
             const modal = new bootstrap.Modal(document.getElementById('jsonModal'));
-            
+
             try {
                 // Intentar formatear si es JSON válido
                 const jsonObj = typeof content === 'string' ? JSON.parse(content) : content;
@@ -121,7 +126,7 @@
                 // Si no es JSON válido, mostrar como texto plano
                 modalContent.textContent = content;
             }
-            
+
             modal.show();
         }
 
@@ -130,12 +135,12 @@
             try {
                 const response = await fetch('data.php');
                 if (!response.ok) throw new Error('Error al cargar datos');
-                
+
                 const data = await response.json();
                 displayData(data);
-                
+
                 // Actualizar hora de última actualización
-                document.getElementById('lastUpdate').textContent = 
+                document.getElementById('lastUpdate').textContent =
                     `Última actualización: ${new Date().toLocaleTimeString('es-ES')}`;
             } catch (error) {
                 console.error('Error:', error);
@@ -153,75 +158,65 @@
         // Función para mostrar los datos en la tabla
         function displayData(vehicles) {
             const tbody = document.getElementById('dataTable');
-            
+
             if (!vehicles || vehicles.length === 0) {
                 tbody.innerHTML = `
-                    <tr>
-                        <td colspan="3" class="text-center text-muted py-3">
-                            No se encontraron vehículos
-                        </td>
-                    </tr>
-                `;
+            <tr>
+                <td colspan="3" class="text-center text-muted py-3">
+                    No se encontraron vehículos
+                </td>
+            </tr>
+        `;
                 return;
             }
-            
+
             tbody.innerHTML = '';
-            
+
             vehicles.forEach(vehicle => {
-                // Datos para Wisetrack (simulados - debes reemplazar con tu lógica real)
-                const wisetrackResponse = {
-                    status: "success",
-                    vehicleId: vehicle.id,
-                    plate: vehicle.patente,
-                    receivedAt: new Date().toISOString(),
-                    data: {
-                        speed: vehicle.speed,
-                        location: {
-                            lat: vehicle.lat,
-                            lng: vehicle.lng
-                        }
-                    }
-                };
-                
+                const previewJson = formatJsonPreview(vehicle.json_enviado);
+                const previewResponse = formatJsonPreview(vehicle.respuesta_soap);
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>
-                        <strong>${vehicle.patente || 'N/A'}</strong><br>
-                        <small class="text-muted">${vehicle.imei || ''}</small>
-                    </td>
-                    <td>
-                        <div class="json-container" title="Click para ver completo">
-                            ${formatJsonPreview(vehicle)}
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            <span class="badge badge-status ${vehicle.connection_status === 'online' ? 'bg-success' : 'bg-secondary'}">
-                                ${vehicle.connection_status || 'unknown'}
-                            </span>
-                            <span class="ms-2">${vehicle['ultima-conexion'] || ''}</span>
-                        </small>
-                    </td>
-                    <td>
-                        <div class="json-container" title="Click para ver completo">
-                            ${formatJsonPreview(wisetrackResponse)}
-                        </div>
-                    </td>
-                `;
-                
-                // Agregar evento para mostrar JSON completo
-                row.querySelectorAll('.json-container').forEach((container, index) => {
-                    container.style.cursor = 'pointer';
-                    container.addEventListener('click', () => {
-                        showFullJson(index === 0 ? vehicle : wisetrackResponse);
-                    });
-                });
-                
+            <td>
+                <strong>${vehicle.patente || 'N/A'}</strong><br>
+                <small class="text-muted">${vehicle.json_enviado?.imei || ''}</small>
+            </td>
+            <td>
+                <div class="json-container" title="Click para ver completo">
+                    ${previewJson}
+                </div>
+                <small class="text-muted d-block mt-1">
+                    <span class="badge badge-status ${vehicle.json_enviado?.connection_status === 'online' ? 'bg-success' : 'bg-secondary'}">
+                        ${vehicle.json_enviado?.connection_status || 'unknown'}
+                    </span>
+                    <span class="ms-2">${vehicle.json_enviado?.['ultima-conexion'] || ''}</span>
+                </small>
+            </td>
+            <td>
+                <div class="json-container" title="Click para ver completo">
+                    ${previewResponse}
+                </div>
+            </td>
+        `;
+
+                // Mostrar JSON completo en modal al hacer click
+                const [jsonContainer, responseContainer] = row.querySelectorAll('.json-container');
+
+                jsonContainer.style.cursor = 'pointer';
+                jsonContainer.addEventListener('click', () => showFullJson(vehicle.json_enviado));
+
+                responseContainer.style.cursor = 'pointer';
+                responseContainer.addEventListener('click', () => showFullJson(vehicle.respuesta_soap));
+
                 tbody.appendChild(row);
             });
         }
 
+
         // Event listeners
         document.getElementById('refreshBtn').addEventListener('click', loadData);
-        
+
         // Botón para copiar JSON en el modal
         document.getElementById('copyJsonBtn').addEventListener('click', () => {
             const content = document.getElementById('modalJsonContent').textContent;
@@ -238,4 +233,5 @@
         document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
+
 </html>
