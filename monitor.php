@@ -126,8 +126,8 @@ foreach ($array as $item) {
 
     $tabla[] = [
         'patente' => $plate,
-        'xml' => $datos,
-        'respuesta' => $respuesta_wisetrack
+        'xml' => htmlspecialchars($datos), // Conserva el formato XML
+        'respuesta' => htmlspecialchars($respuesta_wisetrack) 
     ];
 
     $total[] = $json;
