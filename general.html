@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor General</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #d5e4fc;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h2 {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+
+        .search-container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .table-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: 500;
+            padding: 1rem;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;            
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .table td {
+            padding: 1rem;
+            vertical-align: middle;
+        }
+
+        td pre {
+            max-width: 400px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+            margin: 0;
+            height: auto;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .btn-outline-secondary {
+            padding: 0.5rem 1.25rem;
+        }
+
+        .input-group-text {
+            background-color: var(--primary-color);
+            border: 1px solid #6c757d;
+        }
+
+        .form-control{
+            border: 1px solid #6c757d;
+        }
+
+        .fa-search{
+            color: white;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background-color: var(--success-color);
+        }
+
+        .badge-error {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .timestamp {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+
+        .title-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .descripcion {
+            color: white;
+        }
+
+        .hidden-row {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                text-align: center;
+            }
+            
+            .title-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .search-container {
+                padding: 1rem;
+                width: 100%;
+            }
+            
+            .table td pre {
+                max-width: 200px;
+                font-size: 0.75rem;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-4">
+        <div class="header">
+            <div class="title-container">
+                <div class="descripcion">
+                    <h2>Monitor Trackers</h2>
+                    <p>Tiempo de búsqueda: 2 min aprox.</p>
+                </div>
+                <div class="search-container">
+                    <div class="input-group">
+                        <input type="text" id="buscadorPatente" class="form-control" placeholder="Buscar por patente..." aria-label="Buscar por patente">
+                        <button class="btn btn-outline-secondary" type="button" id="btnLimpiar">Limpiar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Patente</th>
+                        <th style="width: 40%">XML Enviado</th>
+                        <th style="width: 45%">Respuesta Wisetrack</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-trackers">
+                    <tr>
+                        <td colspan="3" class="text-center py-4">
+                            <div class="text-muted">
+                                <div class="loading-spinner mb-3" style="border-top-color: var(--primary-color);"></div>
+                                <p>Cargando datos...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Función para formatear XML/JSON para mejor legibilidad
+        function formatResponse(text) {
+            try {
+                // Intenta parsear como JSON
+                const json = JSON.parse(text);
+                return JSON.stringify(json, null, 2);
+            } catch (e) {
+                try {
+                    // Intenta parsear como XML
+                    if (text.startsWith('<')) {
+                        return formatXml(text);
+                    }
+                } catch (e) {
+                    // Si no es JSON ni XML, devuelve el texto original
+                    return text;
+                }
+                return text;
+            }
+        }
+
+        // Función simple para formatear XML (básica)
+        function formatXml(xml) {
+            let formatted = '';
+            let indent = '';
+            const tab = '  ';
+            xml.split(/>\s*</).forEach(node => {
+                if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
+                formatted += indent + '<' + node + '>\r\n';
+                if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
+            });
+            return formatted.substring(1, formatted.length - 3);
+        }
+
+        // Función para cargar y mostrar los datos
+        function cargarDatos() {
+            const tabla = document.getElementById('tabla-trackers');
+            
+            fetch('monitor.php')
+                .then(response => response.json())
+                .then(data => {
+                    tabla.innerHTML = ''; // limpiar
+
+                    if (data.length === 0) {
+                        tabla.innerHTML = `
+                            <tr>
+                                <td colspan="3" class="no-results">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    No hay datos disponibles
+                                </td>
+                            </tr>`;
+                        return;
+                    }
+
+                    // Guardar los datos para el filtrado
+                    window.trackerData = data;
+
+                    data.forEach(fila => {
+                        const tr = document.createElement('tr');
+                        tr.classList.add('fila-tracker');
+                        tr.setAttribute('data-patente', fila.patente.toLowerCase());
+
+                        const tdPatente = document.createElement('td');
+                        tdPatente.innerHTML = `
+                            <strong>${fila.patente}</strong>
+                            <div class="timestamp">
+                                <i class="far fa-clock me-1"></i> ${new Date().toLocaleString()}
+                            </div>
+                        `;
+
+                        const tdXml = document.createElement('td');
+                        tdXml.innerHTML = `<pre>${formatResponse(fila.xml)}</pre>`;
+
+                        const tdRespuesta = document.createElement('td');
+                        // Verificar si la respuesta contiene error
+                        const isError = fila.respuesta.toLowerCase().includes('error') || 
+                                     fila.respuesta.toLowerCase().includes('fail');
+                        tdRespuesta.innerHTML = `
+                            ${isError ? '<span class="badge badge-error status-badge">Error</span>' : 
+                                       '<span class="badge badge-success status-badge">Éxito</span>'}
+                            <pre>${formatResponse(fila.respuesta)}</pre>
+                        `;
+
+                        tr.appendChild(tdPatente);
+                        tr.appendChild(tdXml);
+                        tr.appendChild(tdRespuesta);
+                        tabla.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar:', error);
+                    tabla.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-danger py-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Error al obtener datos. Intente nuevamente.
+                            </td>
+                        </tr>`;
+                });
+        }
+
+        // Función para filtrar por patente
+        function filtrarPorPatente(patente) {
+            const filas = document.querySelectorAll('.fila-tracker');
+            let resultados = 0;
+            
+            // Si no hay patente o está vacía, mostrar todas las filas
+            if (!patente || patente.trim() === '') {
+                filas.forEach(fila => {
+                    fila.classList.remove('hidden-row');
+                    resultados++;
+                });
+                return;
+            }
+            
+            // Filtrar las filas
+            filas.forEach(fila => {
+                const patenteFila = fila.getAttribute('data-patente');
+                if (patenteFila.includes(patente.toLowerCase())) {
+                    fila.classList.remove('hidden-row');
+                    resultados++;
+                } else {
+                    fila.classList.add('hidden-row');
+                }
+            });
+            
+            // Mostrar mensaje si no hay resultados
+            const tabla = document.getElementById('tabla-trackers');
+            let mensajeNoResultados = tabla.querySelector('.no-results');
+            
+            if (resultados === 0) {
+                if (!mensajeNoResultados) {
+                    mensajeNoResultados = document.createElement('tr');
+                    mensajeNoResultados.innerHTML = `
+                        <td colspan="3" class="no-results">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            No se encontraron resultados para "${patente}"
+                        </td>`;
+                    mensajeNoResultados.id = 'mensaje-no-resultados';
+                    tabla.appendChild(mensajeNoResultados);
+                }
+            } else {
+                if (mensajeNoResultados) {
+                    mensajeNoResultados.remove();
+                }
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDatos();
+            
+            document.getElementById('buscadorPatente').addEventListener('input', function(e) {
+                filtrarPorPatente(e.target.value);
+            });
+            
+            document.getElementById('btnLimpiar').addEventListener('click', function() {
+                document.getElementById('buscadorPatente').value = '';
+                filtrarPorPatente('');
+            });
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
